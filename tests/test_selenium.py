@@ -13,20 +13,18 @@ import os
 class TestCalculator:
     @pytest.fixture(scope="class")
     def driver(self):
-        """Configuration du driver Chrome pour les tests"""
         chrome_options = Options()
 
-        # Configuration pour environnement CI/CD
-        if os.getenv('CI'):
-            chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--disable-gpu')
-            chrome_options.add_argument('--window-size=1920,1080')
+        if os.getenv("CI"):
+            chrome_options.add_argument("--headless=new")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--disable-gpu")
+            chrome_options.add_argument("--window-size=1920,1080")
 
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=chrome_options)
+        driver = webdriver.Chrome(options=chrome_options)
         driver.implicitly_wait(10)
+
         yield driver
         driver.quit()
 
@@ -107,6 +105,24 @@ class TestCalculator:
             )
             assert f"Résultat: {expected}" in result.text
             time.sleep(1)
+
+    def test_page_load_time(self, driver):
+        """Test 5: Mesurer le temps de chargement de la page"""
+        start_time = time.time()
+        file_path = os.path.abspath("./src/index.html")
+        driver.get(f"file://{file_path}")
+
+        # Attendre que la page soit complètement chargée
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, "calculator"))
+        )
+
+        load_time = time.time() - start_time
+        print(f"Temps de chargement: {load_time:.2f} secondes")
+
+        # Vérifier que le chargement prend moins de 3 secondes
+        assert load_time < 3.0, f"Page trop lente à charger: {load_time:.2f}s"
+
 
 if __name__ == "__main__":
     pytest.main(["-v", "--html=report.html", "--self-contained-html"])
